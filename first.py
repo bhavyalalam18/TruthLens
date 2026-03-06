@@ -1,0 +1,10 @@
+import pandas as pd
+fake=pd.read_csv("archive/Fake.csv")
+true=pd.read_csv("archive/True.csv")
+print("Fake news articles:",len(fake))
+print("True new articles:",len(true))
+print(fake.head())
+print("\nColumns names:",fake.columns.to_list())
+print("\nShape of fake data:",fake.shape)
+print("\nShape of true data:",true.shape)
+print(fake['text'][0][:300])
