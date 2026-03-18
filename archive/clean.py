@@ -1,6 +1,6 @@
 import pandas as pd
-fake=pd.read_csv("archive/Fake.csv")
-true=pd.read_csv("archive/True.csv")
+fake=pd.read_csv("Fake.csv")
+true=pd.read_csv("True.csv")
 fake['label']=0
 true['label']=1
 print("Fake Sample")
@@ -21,6 +21,6 @@ data['text']=data['text'].apply(clean_text)
 data['title']=data['title'].apply(clean_text)
 print("\n Cleaned test sample:")
 print(data['text'][0][:300])
-data.to_csv("cleaned_data.csv",index=False)
+data.to_csv("../cleaned_data.csv", index=False)
 print("\nCleaned data saved successfully!")
 print("Shape:",data.shape)
