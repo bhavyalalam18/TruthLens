@@ -3,20 +3,48 @@ import joblib
 import re
 import numpy as np
 import pandas as pd
-
-# Load best model (XGBoost) and vectorizer
-model = joblib.load('xgb_model.pkl')
-vectorizer = joblib.load('vectorizer.pkl')
-lr_model = joblib.load('model.pkl')
-feature_names = vectorizer.get_feature_names_out()
-lr_coefficients = lr_model.coef_[0]
-word_importance = dict(zip(feature_names, lr_coefficients))
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from xgboost import XGBClassifier
+import os
+@st.cache_resource
+def load_or_train_models():
+    try:
+        model = joblib.load('xgb_model.pkl')
+        vectorizer = joblib.load('vectorizer.pkl')
+        lr_model = joblib.load('model.pkl')
+        return model, vectorizer, lr_model
+    except:
+        st.info("Training models for first time. Please wait 2-3 minutes...")
+        fake = pd.read_csv("archive/Fake.csv")
+        true = pd.read_csv("archive/True.csv")
+        fake['label'] = 0
+        true['label'] = 1
+        data = pd.concat([fake, true], ignore_index=True)
+        def clean(text):
+            text = str(text).lower()
+            text = re.sub(r'[^a-z\s]', ' ', text)
+            return text.strip()
+        data['content'] = (data['title'] + ' ' + data['text']).apply(clean)
+        data = data.dropna(subset=['content'])
+        vectorizer = TfidfVectorizer(max_features=5000, stop_words='english')
+        X = vectorizer.fit_transform(data['content'])
+        y = data['label']
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        lr_model = LogisticRegression()
+        lr_model.fit(X_train, y_train)
+        model = XGBClassifier(n_estimators=100, random_state=42)
+        model.fit(X_train, y_train)
+        joblib.dump(model, 'xgb_model.pkl')
+        joblib.dump(vectorizer, 'vectorizer.pkl')
+        joblib.dump(lr_model, 'model.pkl')
+        return model, vectorizer, lr_model
 
 def clean_text(text):
     text = text.lower()
     text = re.sub(r'[^a-z\s]', ' ', text)
-    text = text.strip()
-    return text
+    return text.strip()
 
 def get_top_words(article, top_n=5):
     cleaned = clean_text(article)
@@ -27,16 +55,10 @@ def get_top_words(article, top_n=5):
             word_scores.append((word, word_importance[word]))
     word_scores = sorted(word_scores, key=lambda x: abs(x[1]), reverse=True)
     return word_scores[:top_n]
-
-# Page config
 st.set_page_config(page_title="TruthLens", page_icon="🔍", layout="wide")
-
-# Title
 st.title("TruthLens - Fake News Detector")
 st.write("Powered by XGBoost — 99.71% accuracy on 44,898 news articles")
 st.divider()
-
-# Two column layout
 col1, col2 = st.columns(2)
 
 with col1:
